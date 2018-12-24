@@ -1,7 +1,28 @@
 [package]
 name = "cargo-image"
 version = "0.1.0"
-authors = ["Diana <5275194+DianaNites@users.noreply.github.com>"]
+authors = ["Diana"]
 edition = "2018"
+description = "Create qemu bootable OS images"
+#
+keywords = [
+    "no_std",
+    "qemu",
+    "image",
+    "kernel",
+]
+categories = [
+    "no-std",
+    "embedded",
+    "development-tools",
+    "development-tools::cargo-plugins",
+]
+documentation = "https://docs.rs/cargo_image"
+homepage = "https://github.com/DianaNites/cargo-image"
+repository = "https://github.com/DianaNites/cargo-image"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [dependencies]
+[badges]
+maintenance = { status = "as-is" }
