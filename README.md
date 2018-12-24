@@ -8,6 +8,12 @@ An alternative to [`bootimage`](https://crates.io/crates/bootimage) that doesn't
 Intended to be used with [`cargo-sysroot`](https://crates.io/crates/cargo-sysroot),
 this tool will create an image bootable in QEMU for you, using the [`bootloader`](https://crates.io/crates/bootloader) crate.
 
+## Details
+
+Unlike `bootimage`, the standard `cargo-build` command is used to build your kernel.
+
+It is expected that your `.cargo/config` be configured to pass `--sysroot`, such as by using `cargo-sysroot`.
+
 ## Prerequisite
 
 * A nightly compiler.
