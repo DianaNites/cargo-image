@@ -12,7 +12,7 @@ this tool will create an image bootable in QEMU for you, using the [`bootloader`
 
 Unlike `bootimage`, the standard `cargo-build` command is used to build your kernel.
 
-It is expected that your `.cargo/config` be configured to pass `--sysroot`, such as by using `cargo-sysroot`.
+It is expected that your `.cargo/config` be configured to pass `--sysroot` and have a proper `target`, such as by using `cargo-sysroot`.
 
 ## Prerequisite
 
