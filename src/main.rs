@@ -75,6 +75,63 @@ fn build_kernel(meta: &Metadata) -> PathBuf {
         .join("diaos")
 }
 
+/// Creates the final image by combining the bootloader and the kernel.
+fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
+    let (kernel, bootloader) = (kernel.as_ref(), bootloader.as_ref());
+    // Read the kernel
+    let k = {
+        let mut x = Vec::new();
+        File::open(&kernel)
+            .expect("Failed to open kernel file")
+            .read_to_end(&mut x)
+            .expect("Failed to read kernel file");
+        x
+    };
+    // Read the bootloader
+    let b = {
+        let mut x = Vec::new();
+        File::open(&bootloader)
+            .expect("Failed to open bootoader file")
+            .read_to_end(&mut x)
+            .expect("Failed to read bootoader file");
+        x
+    };
+    //
+    let mut image =
+        File::create(kernel.with_extension("bin")).expect("Failed to create final image");
+    //
+    let elf = xmas_elf::ElfFile::new(&b).expect("Couldn't parse ELF header");
+    xmas_elf::header::sanity_check(&elf).expect("ELF header failed sanity check");
+    let bootloader_section = elf
+        .find_section_by_name(".bootloader")
+        .expect("bootloader must have a .bootloader section");
+    // Write bootloader
+    image
+        .write_all(bootloader_section.raw_data(&elf))
+        .expect("Failed writing bootloader data");
+    // Write kernel info block u32 little endian (kernel_size, 0)
+    // TODO: Use byteorder.
+    assert!(
+        k.len() as u64 <= u64::from(u32::max_value()),
+        "Kernel is too large."
+    );
+    let mut kinfo = [0u8; 512];
+    let ksize = k.len();
+    let x: &[u8] =
+        unsafe { slice::from_raw_parts(&ksize as *const _ as *const u8, mem::size_of::<u32>()) };
+    kinfo[0..4].copy_from_slice(x);
+    image
+        .write_all(&kinfo)
+        .expect("Failed writing kernel info block");
+    // Write kernel
+    image.write_all(&k).expect("Failed writing kernel");
+    // Padding
+    let padding = [0u8; 512];
+    let padding_size = (padding.len() - ((k.len()) % padding.len())) % padding.len();
+    image.write_all(&padding[..padding_size]).unwrap();
+    image.sync_all().unwrap();
+}
+
 fn main() {
     let manifest = Path::new("Cargo.toml");
     //
@@ -83,42 +140,5 @@ fn main() {
     let boot_out = build_bootloader(&meta);
     let kernel = build_kernel(&meta);
     // Combine Kernel and Bootloader
-    let mut kraw = Vec::new();
-    let mut k = File::open(&kernel).expect("Failed to open kernel file");
-    k.read_to_end(&mut kraw)
-        .expect("Failed to read kernel file");
-    //
-    let mut braw = Vec::new();
-    let mut bootloader = File::open(boot_out).expect("Failed to open bootoader file");
-    bootloader
-        .read_to_end(&mut braw)
-        .expect("Failed to read bootloader file");
-    //
-    let mut image_out =
-        File::create(kernel.with_extension("bin")).expect("Failed to create final image");
-    //
-    let elf = xmas_elf::ElfFile::new(&braw).unwrap();
-    xmas_elf::header::sanity_check(&elf).unwrap();
-    let bootloader_section = elf
-        .find_section_by_name(".bootloader")
-        .expect("bootloader must have a .bootloader section");
-    image_out
-        .write_all(&bootloader_section.raw_data(&elf))
-        .unwrap();
-    // Write kernel info block u32 little endian (kernel_size, 0)
-    let mut kinfo = [0u8; 512];
-    let ksize = kraw.len();
-    let x: &[u8] =
-        unsafe { slice::from_raw_parts(&ksize as *const _ as *const u8, mem::size_of::<u32>()) };
-    kinfo[0..4].copy_from_slice(x);
-    image_out.write_all(&kinfo).unwrap();
-
-    // Write kernel
-    image_out.write_all(&kraw).unwrap();
-
-    // Pad file
-    let padding = [0u8; 512];
-    let padding_size = (padding.len() - ((kraw.len()) % padding.len())) % padding.len();
-    image_out.write_all(&padding[..padding_size]).unwrap();
-    image_out.sync_all().unwrap();
+    create_image(&kernel, &boot_out);
 }
