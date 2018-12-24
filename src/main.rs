@@ -1,5 +1,5 @@
 #![allow(dead_code, unused_parens)]
-use cargo_metadata::metadata_deps;
+use cargo_metadata::{metadata_deps, Metadata};
 use std::{
     env,
     fs::File,
@@ -10,84 +10,79 @@ use std::{
     slice,
 };
 
-fn main() {
-    // let manifest = Path::new("Cargo.toml");
-    // let config = Path::new(".cargo/config");
-    let manifest = Path::new("C:/_Diana/Projects/diaos/Cargo.toml");
-    let config = Path::new("C:/_Diana/Projects/diaos/.cargo/config");
-    //
-    let target = PathBuf::from(
-        cargo_toml2::from_path::<_, cargo_toml2::CargoConfig>(config)
-            .expect("Couldn't read .cargo/config")
-            .build
-            .expect("Couldn't read target")
-            .target
-            .expect("Couldn't read target"),
-    );
-    let target_triple = target.file_stem().expect("Impossible");
-    let meta = metadata_deps(Some(manifest), true).expect("Unable to read Cargo.toml");
-    let selfa = meta
-        .packages
-        .iter()
-        .find(|x| {
-            Path::new(&x.manifest_path)
-                .canonicalize()
-                .expect("Impossible")
-                == manifest.canonicalize().expect("Impossible")
-        })
-        .expect("Couldn't find self in cargo-metadata");
-    println!("{:#?}", selfa);
+/// Returns path to the bootloader binary.
+fn build_bootloader(meta: &Metadata) -> PathBuf {
     let bootloader = meta
         .packages
         .iter()
         .find(|x| x.name == "bootloader")
         .expect("Missing bootloader dependency");
-    println!("Bootloader: {:#?}", bootloader);
-    let kernel = PathBuf::from(&meta.target_directory)
-        .join(target_triple)
-        .join("debug")
-        .join("diaos");
-    println!("Kernel: {:#?}", kernel);
-    // Build kernel.
-    Command::new(env::var_os("CARGO").expect("Missing CARGO environment variable."))
-        .arg("build")
-        .current_dir(manifest.parent().unwrap()) // TESTING
-        .status()
-        .expect("Failed to build kernel");
-    let bootloader_triple =
-        Path::new(&bootloader.manifest_path).with_file_name("x86_64-bootloader.json");
+    let bootloader_manifest = Path::new(&bootloader.manifest_path);
+    let bootloader_target = bootloader_manifest.with_file_name("x86_64-bootloader.json");
+    let bootloader_triple = bootloader_target.file_stem().expect("Impossible");
+    let cargo = env::var_os("CARGO").expect("Missing CARGO environment variable.");
     // Build bootloader sysroot
-    Command::new(env::var_os("CARGO").expect("Missing CARGO environment variable."))
+    Command::new(&cargo)
         .arg("sysroot")
         .arg("--target")
         .arg(&bootloader_triple)
-        .current_dir(
-            Path::new(&bootloader.manifest_path)
-                .parent()
-                .expect("Impossible"),
-        )
+        .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader sysroot");
     // Build bootloader
-    Command::new(env::var_os("CARGO").expect("Missing CARGO environment variable."))
+    Command::new(&cargo)
         .arg("build")
         .arg("--release")
         .arg("--target")
         .arg(&bootloader_triple)
-        .current_dir(
-            Path::new(&bootloader.manifest_path)
-                .parent()
-                .expect("Impossible"),
-        )
+        .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader");
-    // Combine Kernel and Bootloader
-    let boot_out = Path::new(&bootloader.manifest_path)
+    bootloader_manifest
         .with_file_name("target")
-        .join(bootloader_triple.file_stem().expect("Impossible"))
+        .join(bootloader_triple)
         .join("release")
-        .join("bootloader");
-    // panic!("{:#?}", boot_out);
+        .join("bootloader")
+}
+
+/// Returns path to the kernel binary
+fn build_kernel(meta: &Metadata) -> PathBuf {
+    let cargo = env::var_os("CARGO").expect("Missing CARGO environment variable.");
+    let target = PathBuf::from(
+        cargo_toml2::from_path::<_, cargo_toml2::CargoConfig>(".cargo/config")
+            .expect("Couldn't read .cargo/config")
+            .build
+            .expect("Couldn't read [build]")
+            .target
+            .expect("Couldn't read target"),
+    );
+    let target_triple = target.file_stem().expect("Impossible");
+    // Build sysroot, just in case.
+    Command::new(&cargo)
+        .arg("sysroot")
+        .status()
+        .expect("Failed to build kernel sysroot");
+    // Build kernel
+    Command::new(&cargo)
+        .arg("build")
+        .status()
+        .expect("Failed to build kernel");
+    //
+    // TODO: Get and use binary target name.
+    PathBuf::from(&meta.target_directory)
+        .join(target_triple)
+        .join("debug")
+        .join("diaos")
+}
+
+fn main() {
+    let manifest = Path::new("Cargo.toml");
+    //
+    let meta = metadata_deps(Some(manifest), true).expect("Unable to read Cargo.toml");
+    //
+    let boot_out = build_bootloader(&meta);
+    let kernel = build_kernel(&meta);
+    // Combine Kernel and Bootloader
     let mut kraw = Vec::new();
     let mut k = File::open(&kernel).expect("Failed to open kernel file");
     k.read_to_end(&mut kraw)
