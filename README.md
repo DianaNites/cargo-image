@@ -3,34 +3,29 @@
 [![Crates.io](https://img.shields.io/crates/v/cargo-image.svg)](https://crates.io/crates/cargo-image)
 ![maintenance-as-is](https://img.shields.io/badge/maintenance-as--is-yellow.svg)
 
-An alternative to [`bootimage`](https://crates.io/crates/bootimage) that doesn't use `cargo-xbuild`.
+An alternative to [`bootimage`](https://crates.io/crates/bootimage) using [`cargo-sysroot`](https://crates.io/crates/cargo-sysroot).
 
-Intended to be used with [`cargo-sysroot`](https://crates.io/crates/cargo-sysroot),
-this tool will create an image bootable in QEMU for you, using the [`bootloader`](https://crates.io/crates/bootloader) crate.
+The advantage of `cargo-sysroot` is that it's composable, eg other tools will work with it,
+even if they don't know about it, because it sets up cargo so that the
+normal commands like `cargo build` will work.
+
+Like `bootimage`, this tool will combine your kernel with the
+x86_64 [`bootloader`](https://crates.io/crates/bootloader) crate, so you can, well, boot it.
 
 ## Details
 
-Unlike `bootimage`, the standard `cargo-build` command is used to build your kernel.
-
-It is expected that your `.cargo/config` be configured to pass `--sysroot` and have a proper `target`, such as by using `cargo-sysroot`.
+The `bootloader` sysroot crates are compiled using `cargo sysroot`,
+and `cargo sysroot` will be called before building your kernel, to ensure everything is up to date.
 
 ## Prerequisite
 
 * A nightly compiler.
 * A `.cargo/config` setup to build your target.
+* `cargo-sysroot` v0.5.3 or later.
 
-An example `.cargo/config` might look like this. These are the absolute minimum settings required for `cargo-image` to work.
+## Limitations
 
-`cargo-sysroot` will automatically set this up for you, if you use it. `cargo-sysroot` is not a requirement.
-
-```rust
-[build]
-target = "path/to/your/target/specification/json"
-rustflags = [
-    "--sysroot",
-    "full/path/to/target/sysroot",
-]
-```
+No attempt is made to follow the `.cargo/config` search path, eg this tool will not look in the parent directory like `cargo` would.
 
 ## FAQ
 
