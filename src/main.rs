@@ -22,7 +22,7 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
     let bootloader_triple = bootloader_target.file_stem().expect("Impossible");
     let cargo = env::var_os("CARGO").expect("Missing CARGO environment variable.");
     // Build bootloader sysroot
-    Command::new(&cargo)
+    let exit = Command::new(&cargo)
         .arg("sysroot")
         .arg("--target")
         .arg(&bootloader_target)
@@ -30,8 +30,9 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader sysroot");
+    assert!(exit.success(), "Failed to build bootloader sysroot");
     // Build bootloader
-    Command::new(&cargo)
+    let exit = Command::new(&cargo)
         .arg("build")
         .arg("--release")
         .arg("--target")
@@ -50,6 +51,7 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader");
+    assert!(exit.success(), "Failed to build bootloader");
     bootloader_manifest
         .with_file_name("target")
         .join(bootloader_triple)
@@ -84,15 +86,17 @@ fn build_kernel(meta: &Metadata) -> PathBuf {
     );
     let target_triple = target.file_stem().expect("Impossible");
     // Build sysroot, just in case.
-    Command::new(&cargo)
+    let exit = Command::new(&cargo)
         .arg("sysroot")
         .status()
         .expect("Failed to build kernel sysroot");
+    assert!(exit.success(), "Failed to build kernel sysroot");
     // Build kernel
-    Command::new(&cargo)
+    let exit = Command::new(&cargo)
         .arg("build")
         .status()
         .expect("Failed to build kernel");
+    assert!(exit.success(), "Failed to build kernel");
     //
     // TODO: --release support
     PathBuf::from(&meta.target_directory)
