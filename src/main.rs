@@ -1,13 +1,12 @@
 #![allow(dead_code, unused_parens)]
+use byteorder::{ByteOrder, LittleEndian};
 use cargo_metadata::{metadata_deps, Metadata};
 use std::{
     env,
     fs::File,
     io::prelude::*,
-    mem,
     path::{Path, PathBuf},
     process::Command,
-    slice,
 };
 
 /// Returns path to the bootloader binary.
@@ -110,16 +109,13 @@ fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
         .write_all(bootloader_section.raw_data(&elf))
         .expect("Failed writing bootloader data");
     // Write kernel info block u32 little endian (kernel_size, 0)
-    // TODO: Use byteorder.
     assert!(
         k.len() as u64 <= u64::from(u32::max_value()),
         "Kernel is too large."
     );
     let mut kinfo = [0u8; 512];
-    let ksize = k.len();
-    let x: &[u8] =
-        unsafe { slice::from_raw_parts(&ksize as *const _ as *const u8, mem::size_of::<u32>()) };
-    kinfo[0..4].copy_from_slice(x);
+    LittleEndian::write_u32(&mut kinfo[0..4], k.len() as u32);
+    LittleEndian::write_u32(&mut kinfo[8..12], 0);
     image
         .write_all(&kinfo)
         .expect("Failed writing kernel info block");
