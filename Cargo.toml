@@ -28,6 +28,7 @@ cargo_metadata = "0.6.4"
 xmas-elf = "0.6.2"
 cargo-toml2 = "1.3.0"
 byteorder = "1.2.7"
+clap = "2.32.0"
 
 [badges]
 maintenance = { status = "as-is" }

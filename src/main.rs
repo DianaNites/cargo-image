@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_parens)]
 use byteorder::{ByteOrder, LittleEndian};
 use cargo_metadata::{metadata_deps, Metadata};
+use clap::{crate_description, crate_name, crate_version, App, AppSettings, SubCommand};
 use std::{
     env,
     fs::File,
@@ -142,7 +143,19 @@ fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
     image.sync_all().unwrap();
 }
 
+fn parse_args() {
+    App::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
+        .bin_name("cargo")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .setting(AppSettings::GlobalVersion)
+        .subcommand(SubCommand::with_name("image").about(crate_description!()))
+        .get_matches();
+}
+
 fn main() {
+    parse_args();
     let manifest = Path::new("Cargo.toml");
     //
     let meta = metadata_deps(Some(manifest), true).expect("Unable to read Cargo.toml");
