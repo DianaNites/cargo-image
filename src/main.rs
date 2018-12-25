@@ -46,6 +46,20 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
 
 /// Returns path to the kernel binary
 fn build_kernel(meta: &Metadata) -> PathBuf {
+    let selfa = meta
+        .packages
+        .iter()
+        .find(|x| {
+            Path::new(&x.manifest_path)
+                .canonicalize()
+                .expect("Impossible")
+                == Path::new("Cargo.toml").canonicalize().expect("Impossible")
+        })
+        .expect("Couldn't find self in cargo-metadata")
+        .targets
+        .iter()
+        .find(|x| x.kind.iter().find(|x| *x == "bin").is_some())
+        .expect("Couldn't find a bin target.");
     let cargo = env::var_os("CARGO").expect("Missing CARGO environment variable.");
     let target = PathBuf::from(
         cargo_toml2::from_path::<_, cargo_toml2::CargoConfig>(".cargo/config")
@@ -67,11 +81,11 @@ fn build_kernel(meta: &Metadata) -> PathBuf {
         .status()
         .expect("Failed to build kernel");
     //
-    // TODO: Get and use binary target name.
+    // TODO: --release support
     PathBuf::from(&meta.target_directory)
         .join(target_triple)
         .join("debug")
-        .join("diaos")
+        .join(&selfa.name)
 }
 
 /// Creates the final image by combining the bootloader and the kernel.
