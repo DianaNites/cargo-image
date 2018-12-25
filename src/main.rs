@@ -160,8 +160,11 @@ fn main() {
     //
     let meta = metadata_deps(Some(manifest), true).expect("Unable to read Cargo.toml");
     //
+    println!("====Building bootloader====");
     let boot_out = build_bootloader(&meta);
+    println!("======Building kernel======");
     let kernel = build_kernel(&meta);
     // Combine Kernel and Bootloader
+    println!("======Creating image======");
     create_image(&kernel, &boot_out);
 }
