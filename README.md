@@ -12,6 +12,11 @@ normal commands like `cargo build` will work.
 Like `bootimage`, this tool will combine your kernel with the
 x86_64 [`bootloader`](https://crates.io/crates/bootloader) crate, so you can, well, boot it.
 
+## Usage
+
+In your project directory, simply run `cargo image`.
+The output image will be located at `target/{your-triple}/debug/{your-binary-name}.bin`. Your binary name will usually be the name of your project.
+
 ## Details
 
 The `bootloader` sysroot crates are compiled using `cargo sysroot`,
@@ -25,7 +30,8 @@ and `cargo sysroot` will be called before building your kernel, to ensure everyt
 
 ## Limitations
 
-No attempt is made to follow the `.cargo/config` search path, eg this tool will not look in the parent directory like `cargo` would.
+* No attempt is made to follow the `.cargo/config` search path, eg this tool will not look in the parent directory like `cargo` would.
+* Your kernel will only ever be built in Debug mode. This will change in the future.
 
 ## FAQ
 
