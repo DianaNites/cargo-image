@@ -3,9 +3,10 @@ name = "cargo-image"
 version = "0.1.0"
 authors = ["Diana"]
 edition = "2018"
-description = "Create qemu bootable OS images"
+description = "Create qemu bootable x86_64 OS images"
 #
 keywords = [
+    "x86_64",
     "no_std",
     "qemu",
     "image",
