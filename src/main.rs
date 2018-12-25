@@ -26,6 +26,7 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
         .arg("sysroot")
         .arg("--target")
         .arg(&bootloader_target)
+        .arg("--no-config")
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader sysroot");
@@ -35,6 +36,17 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
         .arg("--release")
         .arg("--target")
         .arg(&bootloader_target)
+        .env(
+            "RUSTFLAGS",
+            format!(
+                "--sysroot {}",
+                bootloader_manifest
+                    .with_file_name("target")
+                    .join("sysroot")
+                    .to_str()
+                    .expect("Invalid path")
+            ),
+        )
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader");
