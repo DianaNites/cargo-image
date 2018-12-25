@@ -25,7 +25,7 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
     Command::new(&cargo)
         .arg("sysroot")
         .arg("--target")
-        .arg(&bootloader_triple)
+        .arg(&bootloader_target)
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader sysroot");
@@ -34,7 +34,7 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
         .arg("build")
         .arg("--release")
         .arg("--target")
-        .arg(&bootloader_triple)
+        .arg(&bootloader_target)
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
         .expect("Failed to build bootloader");
@@ -138,7 +138,7 @@ fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
     image.write_all(&k).expect("Failed writing kernel");
     // Padding
     let padding = [0u8; 512];
-    let padding_size = (padding.len() - ((k.len()) % padding.len())) % padding.len();
+    let padding_size = (padding.len() - (k.len() % padding.len())) % padding.len();
     image.write_all(&padding[..padding_size]).unwrap();
     image.sync_all().unwrap();
 }
