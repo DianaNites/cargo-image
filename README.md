@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/cargo-image.svg)](https://crates.io/crates/cargo-image)
 ![maintenance-as-is](https://img.shields.io/badge/maintenance-as--is-yellow.svg)
 
-An alternative to [`bootimage`](https://crates.io/crates/bootimage) that doesn't call `cargo-xbuild`.
+An alternative to [`bootimage`](https://crates.io/crates/bootimage) that doesn't use `cargo-xbuild`.
 
 Intended to be used with [`cargo-sysroot`](https://crates.io/crates/cargo-sysroot),
 this tool will create an image bootable in QEMU for you, using the [`bootloader`](https://crates.io/crates/bootloader) crate.
@@ -17,6 +17,20 @@ It is expected that your `.cargo/config` be configured to pass `--sysroot` and h
 ## Prerequisite
 
 * A nightly compiler.
+* A `.cargo/config` setup to build your target.
+
+An example `.cargo/config` might look like this. These are the absolute minimum settings required for `cargo-image` to work.
+
+`cargo-sysroot` will automatically set this up for you, if you use it. `cargo-sysroot` is not a requirement.
+
+```rust
+[build]
+target = "path/to/your/target/specification/json"
+rustflags = [
+    "--sysroot",
+    "full/path/to/target/sysroot",
+]
+```
 
 ## FAQ
 
