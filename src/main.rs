@@ -1,5 +1,5 @@
 use byteorder::{ByteOrder, LittleEndian};
-use cargo_metadata::{Metadata, MetadataCommand};
+use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, SubCommand};
 use std::{
     env,
@@ -11,7 +11,7 @@ use std::{
 
 /// Returns path to the bootloader binary.
 fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
-    let bootloader = meta
+    let bootloader: &Package = meta
         .packages
         .iter()
         .find(|x| x.name == "bootloader")
