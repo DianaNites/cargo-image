@@ -10,7 +10,7 @@ use std::{
 };
 
 /// Returns path to the bootloader binary.
-fn build_bootloader(meta: &Metadata) -> PathBuf {
+fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
     let bootloader = meta
         .packages
         .iter()
@@ -33,6 +33,12 @@ fn build_bootloader(meta: &Metadata) -> PathBuf {
     // Build bootloader
     let exit = Command::new(&cargo)
         .arg("build")
+        .arg("--features")
+        .arg("binary")
+        // Required now, for some reason.
+        .env("KERNEL", kernel_image)
+        .env("KERNEL_MANIFEST", meta.workspace_root.join("Cargo.toml"))
+        //
         .arg("--release")
         .arg("--target")
         .arg(&bootloader_target)
@@ -176,10 +182,10 @@ fn main() {
         .exec()
         .expect("Unable to read Cargo.toml");
     //
-    println!("====Building bootloader====");
-    let boot_out = build_bootloader(&meta);
     println!("======Building kernel======");
     let kernel = build_kernel(&meta);
+    println!("====Building bootloader====");
+    let boot_out = build_bootloader(&meta, &kernel);
     // Combine Kernel and Bootloader
     println!("======Creating image======");
     create_image(&kernel, &boot_out);
