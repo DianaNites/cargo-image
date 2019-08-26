@@ -126,9 +126,9 @@ fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
     let b = {
         let mut x = Vec::new();
         File::open(&bootloader)
-            .expect("Failed to open bootoader file")
+            .expect("Failed to open bootloader file")
             .read_to_end(&mut x)
-            .expect("Failed to read bootoader file");
+            .expect("Failed to read bootloader file");
         x
     };
     //
