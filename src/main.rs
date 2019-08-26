@@ -1,6 +1,5 @@
-#![allow(dead_code, unused_parens)]
 use byteorder::{ByteOrder, LittleEndian};
-use cargo_metadata::{metadata_deps, Metadata};
+use cargo_metadata::{Metadata, MetadataCommand};
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, SubCommand};
 use std::{
     env,
@@ -172,9 +171,10 @@ fn parse_args() {
 
 fn main() {
     parse_args();
-    let manifest = Path::new("Cargo.toml");
     //
-    let meta = metadata_deps(Some(manifest), true).expect("Unable to read Cargo.toml");
+    let meta = MetadataCommand::new()
+        .exec()
+        .expect("Unable to read Cargo.toml");
     //
     println!("====Building bootloader====");
     let boot_out = build_bootloader(&meta);
