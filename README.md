@@ -26,7 +26,8 @@ and `cargo sysroot` will be called before building your kernel, to ensure everyt
 
 * A nightly compiler.
 * A `.cargo/config` setup to build your target.
-* `cargo-sysroot` v0.5.3 or later.
+* `cargo-sysroot` v0.5.4 or later.
+* `bootloader` v0.8.0. Older versions are untested and probably won't work.
 
 ## Limitations
 

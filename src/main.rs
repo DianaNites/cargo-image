@@ -1,10 +1,9 @@
-use byteorder::{ByteOrder, LittleEndian};
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, SubCommand};
+use llvm_tools::{exe, LlvmTools};
 use std::{
     env,
-    fs::File,
-    io::prelude::*,
+    fs::OpenOptions,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -116,54 +115,40 @@ fn build_kernel(meta: &Metadata) -> PathBuf {
 /// Creates the final image by combining the bootloader and the kernel.
 fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
     let (kernel, bootloader) = (kernel.as_ref(), bootloader.as_ref());
-    // Read the kernel
-    let k = {
-        let mut x = Vec::new();
-        File::open(&kernel)
-            .expect("Failed to open kernel file")
-            .read_to_end(&mut x)
-            .expect("Failed to read kernel file");
-        x
-    };
-    // Read the bootloader
-    let b = {
-        let mut x = Vec::new();
-        File::open(&bootloader)
-            .expect("Failed to open bootloader file")
-            .read_to_end(&mut x)
-            .expect("Failed to read bootloader file");
-        x
-    };
+    let kernel_bin = kernel.with_extension("bin");
+    // Use llvm-objcopy. Bootloader requires this.
+    let tools =
+        LlvmTools::new().expect("Missing llvm tools from the llvm-tools-preview rustup component");
+    let objcopy = tools
+        .tool(&exe("llvm-objcopy"))
+        .expect("Couldn't find llvm-objcopy");
+    let _cmd = Command::new(objcopy)
+        .arg("-I")
+        .arg("elf64-x86-64")
+        .arg("-O")
+        .arg("binary")
+        .arg("--binary-architecture=i386:x86-64")
+        .arg(&bootloader)
+        .arg(&kernel_bin)
+        .spawn()
+        .expect("Failed to execute llvm-objcopy");
     //
-    let mut image =
-        File::create(kernel.with_extension("bin")).expect("Failed to create final image");
-    //
-    let elf = xmas_elf::ElfFile::new(&b).expect("Couldn't parse ELF header");
-    xmas_elf::header::sanity_check(&elf).expect("ELF header failed sanity check");
-    let bootloader_section = elf
-        .find_section_by_name(".bootloader")
-        .expect("bootloader must have a .bootloader section");
-    // Write bootloader
-    image
-        .write_all(bootloader_section.raw_data(&elf))
-        .expect("Failed writing bootloader data");
-    // Write kernel info block u32 little endian (kernel_size, 0)
-    assert!(
-        k.len() as u64 <= u64::from(u32::max_value()),
-        "Kernel is too large."
-    );
-    let mut kinfo = [0u8; 512];
-    LittleEndian::write_u32(&mut kinfo[0..4], k.len() as u32);
-    LittleEndian::write_u32(&mut kinfo[8..12], 0);
-    image
-        .write_all(&kinfo)
-        .expect("Failed writing kernel info block");
-    // Write kernel
-    image.write_all(&k).expect("Failed writing kernel");
+    const BLOCK_SIZE: u64 = 512;
+    let image = OpenOptions::new()
+        .write(true)
+        .open(kernel_bin)
+        .expect("Failed to open kernel.bin");
     // Padding
-    let padding = [0u8; 512];
-    let padding_size = (padding.len() - (k.len() % padding.len())) % padding.len();
-    image.write_all(&padding[..padding_size]).unwrap();
+    let size = image
+        .metadata()
+        .expect("Couldn't get kernel.bin metadata")
+        .len();
+    let remain = size % BLOCK_SIZE;
+    let padding = if remain > 0 { BLOCK_SIZE - remain } else { 0 };
+    image
+        .set_len((size + padding) as u64)
+        .expect("Failed to pad kernel image");
+    //
     image.sync_all().unwrap();
 }
 
