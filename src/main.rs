@@ -31,10 +31,8 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
         .expect("Failed to build bootloader sysroot");
     assert!(exit.success(), "Failed to build bootloader sysroot");
     // Build bootloader
-    let exit = Command::new(&cargo)
-        .arg("build")
-        .arg("--features")
-        .arg("binary")
+    let mut exit = Command::new(&cargo);
+    exit.arg("build")
         // Required now, for some reason.
         .env("KERNEL", kernel_image)
         .env("KERNEL_MANIFEST", meta.workspace_root.join("Cargo.toml"))
@@ -53,9 +51,14 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
                     .expect("Invalid path")
             ),
         )
-        .current_dir(bootloader_manifest.parent().expect("Impossible"))
-        .status()
-        .expect("Failed to build bootloader");
+        .current_dir(bootloader_manifest.parent().expect("Impossible"));
+    // Only include binary feature if it exists.
+    // This allows supporting older `bootloader` versions.
+    if bootloader.features.contains_key("binary") {
+        exit.arg("--features").arg("binary");
+    }
+    let exit = exit.status().expect("Failed to build bootloader");
+    //
     assert!(exit.success(), "Failed to build bootloader");
     bootloader_manifest
         .with_file_name("target")
