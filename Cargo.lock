@@ -29,7 +29,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cargo-image"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cargo-toml2 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
