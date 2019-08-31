@@ -1,5 +1,4 @@
 use cargo_metadata::{Metadata, MetadataCommand, Package};
-use clap::{crate_description, crate_name, crate_version, App, AppSettings, SubCommand};
 use llvm_tools::{exe, LlvmTools};
 use std::{
     env,
@@ -7,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+use structopt::{clap::AppSettings, StructOpt};
 
 /// Returns path to the bootloader binary.
 fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
@@ -152,21 +152,36 @@ fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
     image.sync_all().unwrap();
 }
 
-fn parse_args() {
-    App::new(crate_name!())
-        .version(crate_version!())
-        .about(crate_description!())
-        .bin_name("cargo")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .setting(AppSettings::GlobalVersion)
-        .subcommand(SubCommand::with_name("image").about(crate_description!()))
-        .get_matches();
+#[derive(StructOpt, Debug)]
+#[structopt(
+    bin_name = "cargo",
+    global_settings(&[
+        AppSettings::ColoredHelp,
+]))]
+enum Args {
+    Image(Image),
+}
+
+#[derive(StructOpt, Debug)]
+struct Image {
+    /// Target directory
+    #[structopt(long, default_value = "./target", env = "CARGO_TARGET_DIR")]
+    target_dir: PathBuf,
+
+    /// Path to `Cargo.toml`
+    #[structopt(long, default_value = "./Cargo.toml")]
+    manifest_path: PathBuf,
+
+    /// Whether to build in release mode.
+    #[structopt(long)]
+    release: bool,
 }
 
 fn main() {
-    parse_args();
+    let Args::Image(args) = Args::from_args();
     //
     let meta = MetadataCommand::new()
+        .manifest_path(args.manifest_path)
         .exec()
         .expect("Unable to read Cargo.toml");
     //
