@@ -68,7 +68,7 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
 
 /// Returns path to the kernel binary
 fn build_kernel(meta: &Metadata) -> PathBuf {
-    let selfa = meta
+    let self_bin = meta
         .packages
         .iter()
         .find(|x| {
@@ -109,7 +109,7 @@ fn build_kernel(meta: &Metadata) -> PathBuf {
     PathBuf::from(&meta.target_directory)
         .join(target_triple)
         .join("debug")
-        .join(&selfa.name)
+        .join(&self_bin.name)
 }
 
 /// Creates the final image by combining the bootloader and the kernel.
