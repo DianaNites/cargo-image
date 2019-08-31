@@ -81,7 +81,12 @@ fn build_kernel(args: &Image, kernel_crate: &Package) -> PathBuf {
 }
 
 /// Returns path to the bootloader binary.
-fn build_bootloader(meta: &Metadata, kernel_image: &Path, kernel_crate: &Package) -> PathBuf {
+fn build_bootloader(
+    meta: &Metadata,
+    kernel_image: &Path,
+    kernel_crate: &Package,
+    args: &Image,
+) -> PathBuf {
     let bootloader: &Package = meta
         .packages
         .iter()
@@ -99,6 +104,10 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path, kernel_crate: &Package
         .arg("sysroot")
         .arg("--target")
         .arg(&bootloader_target)
+        .arg("--target-dir")
+        .arg(&args.target_dir)
+        .arg("--sysroot-dir")
+        .arg(&args.target_dir.join("sysroot"))
         .arg("--no-config")
         .current_dir(bootloader_manifest.parent().expect("Impossible"))
         .status()
@@ -119,13 +128,14 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path, kernel_crate: &Package
             "RUSTFLAGS",
             format!(
                 "--sysroot {}",
-                bootloader_manifest
-                    .with_file_name("target")
+                args.target_dir
                     .join("sysroot")
                     .to_str()
                     .expect("Invalid path")
             ),
         )
+        .arg("--target-dir")
+        .arg(&args.target_dir)
         .current_dir(bootloader_manifest.parent().expect("Impossible"));
     // Only include binary feature if it exists.
     // This allows supporting older `bootloader` versions.
@@ -135,8 +145,7 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path, kernel_crate: &Package
     let exit = cmd.status().expect("Failed to build bootloader");
     assert!(exit.success(), "Failed to build bootloader");
 
-    bootloader_manifest
-        .with_file_name("target")
+    args.target_dir
         .join(bootloader_triple)
         .join("release")
         .join("bootloader")
@@ -167,8 +176,8 @@ fn create_image(kernel: &Path, bootloader: &Path) {
     const BLOCK_SIZE: u64 = 512;
     let image = OpenOptions::new()
         .write(true)
-        .open(kernel_bin)
-        .expect("Failed to open kernel.bin");
+        .open(&kernel_bin)
+        .expect(&format!("Failed to open {:#?}", kernel_bin));
 
     // Padding
     let size = image
@@ -222,7 +231,7 @@ fn main() {
     let kernel = build_kernel(&args, kernel_crate);
 
     println!("====Building bootloader====");
-    let boot_out = build_bootloader(&meta, &kernel, kernel_crate);
+    let boot_out = build_bootloader(&meta, &kernel, kernel_crate, &args);
 
     // Combine Kernel and Bootloader
     println!("======Creating image======");
