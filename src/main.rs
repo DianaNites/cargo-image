@@ -8,6 +8,35 @@ use std::{
 };
 use structopt::{clap::AppSettings, StructOpt};
 
+#[derive(StructOpt, Debug)]
+#[structopt(
+    bin_name = "cargo",
+    global_settings(&[
+        AppSettings::ColoredHelp,
+]))]
+enum Args {
+    Image(Image),
+}
+
+#[derive(StructOpt, Debug)]
+struct Image {
+    /// Target directory
+    #[structopt(long, default_value = "./target", env = "CARGO_TARGET_DIR")]
+    target_dir: PathBuf,
+
+    /// Path to `Cargo.toml`
+    #[structopt(long, default_value = "./Cargo.toml")]
+    manifest_path: PathBuf,
+
+    /// Whether to build in release mode.
+    #[structopt(long)]
+    release: bool,
+
+    /// Name of the kernel crate, for when using workspaces.
+    #[structopt(long)]
+    kernel_crate: Option<String>,
+}
+
 /// Returns path to the bootloader binary.
 fn build_bootloader(meta: &Metadata, kernel_image: &Path) -> PathBuf {
     let bootloader: &Package = meta
@@ -150,31 +179,6 @@ fn create_image<T: AsRef<Path>, T2: AsRef<Path>>(kernel: T, bootloader: T2) {
         .expect("Failed to pad kernel image");
     //
     image.sync_all().unwrap();
-}
-
-#[derive(StructOpt, Debug)]
-#[structopt(
-    bin_name = "cargo",
-    global_settings(&[
-        AppSettings::ColoredHelp,
-]))]
-enum Args {
-    Image(Image),
-}
-
-#[derive(StructOpt, Debug)]
-struct Image {
-    /// Target directory
-    #[structopt(long, default_value = "./target", env = "CARGO_TARGET_DIR")]
-    target_dir: PathBuf,
-
-    /// Path to `Cargo.toml`
-    #[structopt(long, default_value = "./Cargo.toml")]
-    manifest_path: PathBuf,
-
-    /// Whether to build in release mode.
-    #[structopt(long)]
-    release: bool,
 }
 
 fn main() {
