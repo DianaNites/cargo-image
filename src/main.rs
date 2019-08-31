@@ -37,6 +37,49 @@ struct Image {
     kernel_crate: Option<String>,
 }
 
+/// Returns path to the kernel binary
+fn build_kernel(args: &Image, kernel_crate: &Package) -> PathBuf {
+    let self_bin = kernel_crate
+        .targets
+        .iter()
+        .find(|x| x.kind.iter().find(|x| *x == "bin").is_some())
+        .expect("Couldn't find a bin target.");
+    let cargo = env::var_os("CARGO").expect("Missing CARGO environment variable.");
+    let target = PathBuf::from(
+        cargo_toml2::from_path::<_, cargo_toml2::CargoConfig>(".cargo/config")
+            .expect("Couldn't read .cargo/config")
+            .build
+            .expect("Couldn't read [build]")
+            .target
+            .expect("Couldn't read target"),
+    );
+    let target_triple = target.file_stem().expect("Couldn't parse target triple");
+
+    // Build sysroot, just in case.
+    let exit = Command::new(&cargo)
+        .arg("sysroot")
+        .status()
+        .expect("Failed to build kernel sysroot");
+    assert!(exit.success(), "Failed to build kernel sysroot");
+
+    // Build kernel
+    let mut cmd = Command::new(&cargo);
+    cmd.arg("build");
+    if args.release {
+        cmd.arg("--release");
+    }
+    let exit = cmd.status().expect("Failed to build kernel");
+    assert!(exit.success(), "Failed to build kernel");
+
+    let mut final_path: PathBuf = PathBuf::from(&args.target_dir).join(target_triple);
+    if args.release {
+        final_path = final_path.join("release")
+    } else {
+        final_path = final_path.join("debug")
+    }
+    final_path.join(&self_bin.name)
+}
+
 /// Returns path to the bootloader binary.
 fn build_bootloader(meta: &Metadata, kernel_image: &Path, kernel_crate: &Package) -> PathBuf {
     let bootloader: &Package = meta
@@ -97,49 +140,6 @@ fn build_bootloader(meta: &Metadata, kernel_image: &Path, kernel_crate: &Package
         .join(bootloader_triple)
         .join("release")
         .join("bootloader")
-}
-
-/// Returns path to the kernel binary
-fn build_kernel(args: &Image, kernel_crate: &Package) -> PathBuf {
-    let self_bin = kernel_crate
-        .targets
-        .iter()
-        .find(|x| x.kind.iter().find(|x| *x == "bin").is_some())
-        .expect("Couldn't find a bin target.");
-    let cargo = env::var_os("CARGO").expect("Missing CARGO environment variable.");
-    let target = PathBuf::from(
-        cargo_toml2::from_path::<_, cargo_toml2::CargoConfig>(".cargo/config")
-            .expect("Couldn't read .cargo/config")
-            .build
-            .expect("Couldn't read [build]")
-            .target
-            .expect("Couldn't read target"),
-    );
-    let target_triple = target.file_stem().expect("Couldn't parse target triple");
-
-    // Build sysroot, just in case.
-    let exit = Command::new(&cargo)
-        .arg("sysroot")
-        .status()
-        .expect("Failed to build kernel sysroot");
-    assert!(exit.success(), "Failed to build kernel sysroot");
-
-    // Build kernel
-    let mut cmd = Command::new(&cargo);
-    cmd.arg("build");
-    if args.release {
-        cmd.arg("--release");
-    }
-    let exit = cmd.status().expect("Failed to build kernel");
-    assert!(exit.success(), "Failed to build kernel");
-
-    let mut final_path: PathBuf = PathBuf::from(&args.target_dir).join(target_triple);
-    if args.release {
-        final_path = final_path.join("release")
-    } else {
-        final_path = final_path.join("debug")
-    }
-    final_path.join(&self_bin.name)
 }
 
 /// Creates the final image by combining the bootloader and the kernel.
