@@ -27,8 +27,8 @@ and `cargo sysroot` will be called before building your kernel, to ensure everyt
 
 * A nightly compiler.
 * A `.cargo/config` setup to build your target.
-* `cargo-sysroot` v0.5.4 or later.
-* `bootloader` v0.8.0. Older versions are untested and probably won't work.
+* `cargo-sysroot` v0.6.0 or later.
+* `bootloader` v0.8.0 or later. Older versions are untested and probably won't work.
 * The `llvm-tools-preview` component via rustup.
 
 ## Limitations
