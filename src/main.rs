@@ -161,7 +161,7 @@ fn create_image(kernel: &Path, bootloader: &Path) {
         .arg("--binary-architecture=i386:x86-64")
         .arg(&bootloader)
         .arg(&kernel_bin)
-        .spawn()
+        .status()
         .expect("Failed to execute llvm-objcopy");
     //
     const BLOCK_SIZE: u64 = 512;
