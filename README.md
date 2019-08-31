@@ -15,7 +15,11 @@ x86_64 [`bootloader`](https://crates.io/crates/bootloader) crate, so you can, we
 ## Usage
 
 In your project directory, simply run `cargo image`.
-The output image will be located at `target/{your-triple}/debug/{your-binary-name}.bin`. Your binary name will usually be the name of your project.
+
+The output image will be located at `target_dir/{your-triple}/debug/{your-binary-name}.bin`. Your binary name will usually be the name of your project.
+
+The target directory can be changed with the `--target-dir` flag or
+the `CARGO_TARGET_DIR` environment variable.
 
 ## Details
 
@@ -32,7 +36,6 @@ and `cargo sysroot` will be called before building your kernel, to ensure everyt
 ## Limitations
 
 * No attempt is made to follow the `.cargo/config` search path, eg this tool will not look in the parent directory like `cargo` would.
-* Your kernel will only ever be built in Debug mode. This will change in the future.
 
 ## FAQ
 
