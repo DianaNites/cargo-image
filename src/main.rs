@@ -21,7 +21,7 @@ enum Args {
 #[derive(StructOpt, Debug)]
 struct Image {
     /// Target directory
-    #[structopt(long, default_value = "./target", env = "CARGO_TARGET_DIR")]
+    #[structopt(skip)]
     target_dir: PathBuf,
 
     /// Path to `Cargo.toml`
@@ -186,12 +186,14 @@ fn create_image(kernel: &Path, bootloader: &Path) {
 }
 
 fn main() {
-    let Args::Image(args) = Args::from_args();
+    let Args::Image(mut args) = Args::from_args();
     //
     let meta = MetadataCommand::new()
         .manifest_path(&args.manifest_path)
         .exec()
         .expect("Unable to read Cargo.toml");
+    args.target_dir = meta.target_directory.clone();
+    let args = args;
     //
     let kernel_crate: &Package = {
         if meta.workspace_members.len() == 1 {
