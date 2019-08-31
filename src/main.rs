@@ -185,7 +185,7 @@ fn main() {
     let Args::Image(args) = Args::from_args();
     //
     let meta = MetadataCommand::new()
-        .manifest_path(args.manifest_path)
+        .manifest_path(&args.manifest_path)
         .exec()
         .expect("Unable to read Cargo.toml");
     //
